@@ -1,0 +1,6 @@
+*~
+*-local.php
+*/runtime/*
+/vendor/*
+/www/assets/*
+!.gitignore
