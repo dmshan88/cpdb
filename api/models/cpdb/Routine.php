@@ -543,8 +543,8 @@ class Routine
             $this->errMsg = 'order not exist';
             return false;
         }
-        $activegrouparr = $order->getCpdbgroups()
-            ->where([ 'stat' => 'ON' ])
+/*        $activegrouparr = $order->getCpdbgroups()
+            ->where([ 'stat' => 'ON' ,'recheck' => 'N'])
             ->asArray()
             ->all();
         if (empty($activegrouparr)) {
@@ -558,15 +558,24 @@ class Routine
         }
         foreach ($activegrouparr as $key => $value) {
             $ret = $this->finishgroup($value['id']);
-/*            if ($value['recheck'] == 'Y' && $ret) {
-                # code...
-            }*/
-
+        }*/
+        $activegroups = $order->getCpdbgroups()
+            ->where([ 'stat' => 'ON' ])
+            ->all();
+        foreach ($activegroups as $activegroup) {
+            $this->finishgroup($activegroup->id);
+        }
+        if ($this->cpdbcalckb($orderid)) {
+            return true;
+        } else {
+            $this->errCode = ErrCode::FUNC_RET_FALSE;
+            $this->errMsg = 'calc kb false';
+            return false;
         }
         $this->updateGroupstat($orderid);
-        $this->errCode = ErrCode::FUNC_RET_FALSE;
+  /*      $this->errCode = ErrCode::FUNC_RET_FALSE;
         $this->errMsg = 'order not finish';
-        return false;
+        return false;*/
     }
 
     public function updateGroupstat($orderid = '')
@@ -773,7 +782,17 @@ class Routine
             $this->errMsg = 'order not exist';
             return false;
         }
-
+        $flag = $orderrecord->getCpdbgroups()
+            ->where([
+                'stat' => 'ON',
+                'recheck' => 'N',
+            ])
+            ->exists();
+        if ($flag) {
+            $this->errCode = ErrCode::INNER_ERR;
+            $this->errMsg = 'active group exists';
+            return false;
+        }
         $cpdbcalcarr = Cpdbcalc::find()
             ->select([
                 'cpdbgroup.calibrator_id',
@@ -1000,7 +1019,10 @@ class Routine
                 break;
         }
         //////////////////////////////////
-        $path = '/home/shan/';
+        $islocal = Yii::$app->params['islocal'];
+        if ($islocal) {
+            $path = '/home/shan/';
+        }
         if (!file_exists($path)) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'path no exist';
@@ -1308,6 +1330,7 @@ function calckbr2($x=array(),$y=array()){
 function chksubval($array = [], $target = '', $point = 2)
 {
     if (!is_numeric($target) || count($array) != $point) {
+        // var_dump($target);
         return false;
     }
     $errcnt = array_fill(0, $point, 0);
@@ -1331,16 +1354,20 @@ function chksubval($array = [], $target = '', $point = 2)
                 return $sub12 ? 3 : ($sub13 ? 2 : 1) ;
                 break;
             case 2:
+                // var_dump(2);
                 return false;
                 break;
             case 3:
+                // var_dump(3);
                 return false;
                 break;
             default:
+                // var_dump('default');
                 return false;
                 break;
         }
     } else {
+        // var_dump('point else');
         return false;
     }
 }

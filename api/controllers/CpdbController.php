@@ -12,7 +12,10 @@ class CpdbController extends \yii\web\Controller
     public function actionTest()
     {
         $routineObj = new Routine;
-        var_dump($routineObj->cpdbcalckb(37));
+        // $routineObj->readResults(1);
+        var_dump($routineObj->updateGroupstat(1));
+        var_dump($routineObj->getErrMsg());
+
         // return $routineObj->updateGroupstat(37);
         // if (!$routineObj->updateGroupstat(37)) {
         //     return $routineObj->getErrMsg();

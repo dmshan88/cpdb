@@ -134,6 +134,7 @@ $this->params['breadcrumbs'][] = [
                         return Html::tag('div', $result, $options);
                     }
                     else{
+                        // return $model['groupstat'];
                         return $result;
                         if($model['groupstat']=='ON'){
                            return Html::checkbox('abandon['.$key.']['.$key1.']', $abandon=='Y', ['label' => $result]);

@@ -127,7 +127,7 @@ class SiteController extends \yii\web\Controller
         if(empty($orderid)){
             throw new NotFoundHttpException('empty orderid',404);
         }
-         $url = $urlpara['showreport'];
+        $url = $urlpara['showreport'];
         $post_data = [
             'orderid' => $orderid,
             'key' => 'showreport',
@@ -136,6 +136,8 @@ class SiteController extends \yii\web\Controller
             httppost($url, $post_data, 1),
             [ 'reportarr']
         );
+        var_dump($ret);
+        exit;
         $reportObj = new Report;
         if ($reportObj->Inidata($ret)) {
             $this->layout = false;
@@ -205,7 +207,8 @@ class SiteController extends \yii\web\Controller
                         }
                     }
                 }
-                exit;
+/*                var_dump($abandonarr);
+                exit;*/
                 $url=$urlpara['addgroup'];
                 $post_data = [
                     'group'=>$grouparr,
