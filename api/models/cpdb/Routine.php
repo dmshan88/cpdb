@@ -1000,7 +1000,7 @@ class Routine
                 break;
         }
         //////////////////////////////////
-        $path = '/home/shan/';
+        // $path = '/home/shan/';
         if (!file_exists($path)) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'path no exist';
