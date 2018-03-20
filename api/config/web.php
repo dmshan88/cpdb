@@ -34,6 +34,24 @@ $config = [
                 }
             },*/
         ],
+        'log' => [
+            'targets' => [
+                    [
+                    'class' => 'yii\log\FileTarget',
+                    'levels' => ['trace', 'info', 'error', 'warning'],
+                    'logVars' => ['*'],
+                    // 'categories' => ['routine'],
+                    // 'logFile' => '@runtime/logs/routine.log',
+                ],
+                [
+                    'class' => 'yii\log\FileTarget',
+                    'levels' => ['trace','info', 'error', 'warning'],
+                    'logVars' => ['*'],
+                    'categories' => ['routine'],
+                    'logFile' => '@runtime/logs/routine.log',
+                ],
+            ],
+        ],
         'defaultRoute' => 'cpdb',
         'db' => $db,
      ], 

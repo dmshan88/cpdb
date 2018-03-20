@@ -22,6 +22,26 @@ class Routine
     private $errCode = ErrCode::OK;
     private $errMsg = '';
 
+    
+    private function log($value='', $level = 'info')
+    {
+        $value = is_string($value) ? $value : '(bad input)' ;
+        switch ($level) {
+            
+            case 'trace':
+                Yii::debug($value, 'routine');
+                break;
+             case 'waring':
+                Yii::warning($value, 'routine');
+                break; 
+            case 'error':
+                Yii::error($value, 'routine');
+                break;          
+            default:
+                Yii::info($value, 'routine');
+                break;
+        }
+    }
     public function test($value='')
     {
     }
@@ -38,6 +58,7 @@ class Routine
 
     public function showReport($orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $order = Cpdborder::findOne($orderid);
         if (empty($orderid) || !$order) {
             $this->errCode = ErrCode::PARAM_ERR;
@@ -159,6 +180,7 @@ class Routine
 
     public function showOrders()
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         return Cpdborder::find()
             ->select([
                 'cpdborder.id',
@@ -180,6 +202,7 @@ class Routine
 
     public function showMachines()
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         return Machine::find()
             ->select(['name','id'])
             ->where(['stat' => 'ON'])
@@ -189,6 +212,7 @@ class Routine
     }
     public function showPanels()
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         return Panel::find()
             ->select(['showname','id'])
             ->indexBy('id')
@@ -198,6 +222,7 @@ class Routine
 
     public function showOrderItems($orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $itemarr = Cpdborder::findOne($orderid)
             ->getPanel()
             ->select([ 'item.name', 'item.id'])
@@ -216,24 +241,24 @@ class Routine
     }
     public function showOrderGroupLots($orderid = '')
     {
-
-            $retarray = [];
-            $order = Cpdborder::findOne($orderid);
-            if (empty($order)) {
-                return [];
+        $this->log('function '.__FUNCTION__.' start', 'trace');
+        $retarray = [];
+        $order = Cpdborder::findOne($orderid);
+        if (empty($order)) {
+            return [];
+        }
+        foreach ($order->cpdbgroups as $group) {
+            if ($group->calibratorlot) {
+                $del = ($group->stat == 'DEL') ? ' (BAD)' : '' ;
+                $retarray[$group->id] = sprintf("%s - %s%s", $group->calibrator->name, $group->calibratorlot, $del);
             }
-            foreach ($order->cpdbgroups as $group) {
-                if ($group->calibratorlot) {
-                    $del = ($group->stat == 'DEL') ? ' (BAD)' : '' ;
-                    $retarray[$group->id] = sprintf("%s - %s%s", $group->calibrator->name, $group->calibratorlot, $del);
-                }
-            }
-            return $retarray;
+        }
+        return $retarray;
     }
 
     public function showOrderCaliLots($orderid = '')
     {
-        // return [];
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         return Cpdbgroup::find()
             ->select([ 'calibrator.name', 'calibrator.id' ])
             ->innerJoinWith('calibrator', false)
@@ -250,6 +275,7 @@ class Routine
 
     public function showOrderKBs($orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         return Cpdborder::findOne($orderid)
             ->getCpdbkbs()
             ->select([
@@ -271,6 +297,7 @@ class Routine
 
     public function showOrderResults($orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $orderrecord = Cpdborder::findOne($orderid);
         $groupitem = $orderrecord
             ->getCpdbgroups()
@@ -314,6 +341,7 @@ class Routine
 
     public function newOrder($panelid = '', $panellot = '', $machineid = '', $ordername = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $order = new Cpdborder();
         $transaction = $order->getDb()->beginTransaction();
         try {
@@ -405,15 +433,18 @@ class Routine
                 }
             }
             $transaction->commit();
+            $this->log('order add ok: ' . $cpdbgroup->id);
             return true;
         } catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('order add fail', 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg =$e->getMessage();
+            $this->log('order add fail', 'error');
             $transaction->rollBack();
             return false;
         }
@@ -421,9 +452,11 @@ class Routine
 
     public function newGroup($caliid = '', $calilot = '', $orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         if (empty($calilot) || empty($orderid)) {
             $this->errCode = ErrCode::INPUT_ERROR;
             $this->errMsg = 'input error';
+            $this->log($this->errMsg, 'error');
             return false;
         }
 
@@ -438,14 +471,19 @@ class Routine
             ->one();
         if ($groupobj && $calilot) {
             $groupobj->calibratorlot = $calilot;
-            return $groupobj->save();
-        } else {
-            return false;
+            // return $groupobj->save();
+            if ($groupobj->save()) {
+                $this->log('new group ok, groupid:' . $groupobj->id .', lot:' . $calilot);
+                return true;
+            }
         }
+        $this->log('newGroup error', 'error');
+        return false;
 
     }
     public function kickResult($abandon = [])
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         if(!is_array($abandon) || !count($abandon)){
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'abandon array error';
@@ -488,9 +526,11 @@ class Routine
 
     public function addGroup($grouparr = [], $orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         if(!is_array($grouparr) || !count($grouparr)){
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'group array error';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         foreach ($grouparr as $id => $groupid) {
@@ -504,6 +544,7 @@ class Routine
             if(!$grouprecord){
                 $this->errCode = ErrCode::INNER_ERR;
                 $this->errMsg = 'no active group';
+                $this->log($this->errMsg, 'error');
                 return false;
             }
         }
@@ -519,44 +560,33 @@ class Routine
                     throw new \Exception("group add error", 1);
             }
             $transaction->commit();
+            $this->log('paneltest add group success');
             return count($grouparr);
         } catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('add group error', 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('add group error', 'error');
             return false;
         }
     }
 
     public function finishOrder($orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $order = Cpdborder::findOne($orderid);
         if (!$order) {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'order not exist';
+            $this->log($this->errMsg, 'error');
             return false;
         }
-/*        $activegrouparr = $order->getCpdbgroups()
-            ->where([ 'stat' => 'ON' ,'recheck' => 'N'])
-            ->asArray()
-            ->all();
-        if (empty($activegrouparr)) {
-            if ($this->cpdbcalckb($orderid)) {
-                return true;
-            } else {
-                $this->errCode = ErrCode::FUNC_RET_FALSE;
-                $this->errMsg = 'calc kb false';
-                return false;
-            }
-        }
-        foreach ($activegrouparr as $key => $value) {
-            $ret = $this->finishgroup($value['id']);
-        }*/
         $activegroups = $order->getCpdbgroups()
             ->where([ 'stat' => 'ON' ])
             ->all();
@@ -567,19 +597,20 @@ class Routine
         if (!$this->cpdbcalckb($orderid)) {
             $this->errCode = ErrCode::FUNC_RET_FALSE;
             $this->errMsg = 'calc kb false';
+            $this->log($this->errMsg, 'error');
             return false;
         }
-  /*      $this->errCode = ErrCode::FUNC_RET_FALSE;
-        $this->errMsg = 'order not finish';
-        return false;*/
+        return true;
     }
 
     public function updateGroupstat($orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $order = Cpdborder::findOne($orderid);
         if (!$order) {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'order not exist';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $flag = $order->getCpdbgroups()
@@ -590,6 +621,7 @@ class Routine
         if ($flag) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'active group exists';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $groups = $order->getCpdbgroups()
@@ -602,6 +634,7 @@ class Routine
         if (!$groups || count($groups) < 2) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'group not enough';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $groupcnt = count($groups);
@@ -614,13 +647,12 @@ class Routine
                 $threshold[$itemid] = $cpdbcalc->item->threshold;
             }
         }
-        // var_dump($barr);
         foreach ($barr as $itemid => $value) {
             $ret = chksubval($value, $threshold[$itemid], $groupcnt);
-            // var_dump($ret);
             if ($ret === false) {
                 $this->errCode = ErrCode::FUNC_RET_FALSE;
                 $this->errMsg = 'fun chksubval()  ret false';
+                $this->log($this->errMsg, 'error');
                 return false;
             } elseif ($ret === 0) {
 
@@ -637,19 +669,28 @@ class Routine
                     if (!$group3) {
                         $this->errCode = ErrCode::INNER_ERR;
                         $this->errMsg = 'no find group3';
+                        $this->log($this->errMsg, 'error');
                         return false;
                     }
                     $group3->stat = 'ON';
-                    return $group3->save();
+                    if ($group3->save()) {
+                        $this->log('group3 status on' . $group3->id);
+                        return true;
+                    } else {
+                        $this->log('group3 no save', 'error');
+                        return false;
+                    }
                 } elseif ($groupcnt == 3) {
                     if (!isset($groups[$ret-1])) {
                         $this->errCode = ErrCode::INNER_ERR;
                         $this->errMsg = 'group array key not exist';
+                        $this->log($this->errMsg, 'error');
                         return false;
                     } else {
                         $badgroup = $groups[$ret-1];
                         $badgroup->stat = 'DEL';
                         $badgroup->save();
+                        $this->log('bad group save' . $badgroup->id);
                         break;
                     }
                 }
@@ -659,6 +700,7 @@ class Routine
             } else {
                 $this->errCode = ErrCode::FUNC_RET_FALSE;
                 $this->errMsg = 'fun chksubval()  ret bad value';
+                $this->log($this->errMsg, 'error');
                 return false;
             }
         }
@@ -672,18 +714,27 @@ class Routine
         if (!$grouprecheck) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'no find group recheck';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $grouprecheck->stat = 'ON';
-        return $grouprecheck->save();
+        if ($grouprecheck->save()) {
+            $this->log('recheck status on');
+            return true;
+        } else {
+            $this->log('recheck no save', 'error');
+            return false;
+        }
     }
 
     public function finishgroup($groupid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $grouprecord = Cpdbgroup::findOne($groupid);
         if(empty($grouprecord)){
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'empty group';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $resultarr = Panelresult::find()
@@ -702,6 +753,7 @@ class Routine
         if(empty($resultarr)){
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'empty tests';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         if(empty($grouprecord['calibrator_id'])){
@@ -730,6 +782,7 @@ class Routine
             else{
                 $this->errCode = ErrCode::INNER_ERR;
                 $this->errMsg = 'error or item count less '.$needcnt;
+                $this->log($this->errMsg, 'error');
                 return false;
             }
         }
@@ -754,28 +807,33 @@ class Routine
                 throw new \Exception($msg,1);
             }
             $transaction->commit();
+            $this->log('finish group ok '. $grouprecord->id);
             return true;
         }catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('finishgroup error', 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('finishgroup error', 'error');
             return false;
         }
     }
 
     public function cpdbcalckb($orderid='')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $orderid = intval($orderid);
         $connection = Yii::$app->db;
         $orderrecord = Cpdborder::findOne($orderid);
         if (!isset($orderrecord['stat']) || $orderrecord['stat'] != 'ON') {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'order not exist';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $flag = $orderrecord->getCpdbgroups()
@@ -787,6 +845,7 @@ class Routine
         if ($flag) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'active group exists';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $cpdbcalcarr = Cpdbcalc::find()
@@ -826,6 +885,7 @@ class Routine
             if ($value['calicount'] != count($value['x'])) {
                 $this->errCode = ErrCode::INNER_ERR;
                 $this->errMsg = 'item:'.$key.' cali count not enough ,need '.$value['calicount'].',now: '.count($value['x']);
+                $this->log($this->errMsg, 'error');
                 return false;
             }
             elseif (count(array_unique($value['x'])) < count($value['x'])) {
@@ -842,12 +902,14 @@ class Routine
                     else{
                         $this->errCode = ErrCode::INNER_ERR;
                         $this->errMsg ="item: $key ".$ret['msg'];
+                        $this->log($this->errMsg, 'error');
                         return false;
                     }
                 }
                 else{
                     $this->errCode = ErrCode::INNER_ERR;
                     $this->errMsg ='compute kb error';
+                    $this->log($this->errMsg, 'error');
                     return false;
                 }
             }
@@ -889,32 +951,38 @@ class Routine
                 }
             }
             $transaction->commit();
+            $this->log('cpdbcalckb ok' . $orderid);
             return true;
         }catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('cpdbcalckb', 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('cpdbcalckb', 'error');
             return false;
         }
     }
 
     public function updateKB($cpdbkbarr = [], $orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $connection = Yii::$app->db;
         if (empty($orderid) || empty($cpdbkbarr)) {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'empty orderid OR cpdbkb';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $order = Cpdborder::findOne($orderid);
         if (!$order) {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'order no exist';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $cpdbkbs = $order->getCpdbkbs()->All();
@@ -938,30 +1006,36 @@ class Routine
                 }
             }
             $transaction->commit();
+            $this->log('updatekb ok');
             return $updatecnt;
         } catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log($this->errMsg, 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log($this->errMsg, 'error');
             return false;
         }
     }
     public function readResults($orderid = '')
     {
+       $this->log('function '.__FUNCTION__.' start', 'trace');
        $order = Cpdborder::findOne($orderid);
         if (!$order) {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'order not exist';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         if(ord($order->panel->type) != ord($order->machine->type)){
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'type wrong';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $date = date('Ymd');
@@ -1018,12 +1092,14 @@ class Routine
         if (!file_exists($path)) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'path no exist';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $readarr = readresultfile($path, $order->panel->name ,$date ,$panelitemarr);
         if (!$readarr['ok']) {
             $this->errCode = ErrCode::FUNC_RET_FALSE;
             $this->errMsg = $readarr['msg'];
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $hastwoarr = Panelitem::find()
@@ -1075,25 +1151,30 @@ class Routine
                 }
             }
             $transaction->commit();
+            $this->log('read result ok');
             return $successcnt;
         } catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('read result error', 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg =$e->getMessage();
             $transaction->rollBack();
+            $this->log('read result error', 'error');
             return false;
         }
     }
     public function resetResult($orderid = '')
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $order = Cpdborder::findOne($orderid);
         if (empty($orderid) || !$order) {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'order not exist';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $targetarr = [];
@@ -1140,21 +1221,25 @@ class Routine
                 $cpdbkb->save();
             }
             $transaction->commit();
+            $this->log('reset result ok ' . $orderid);
             return true;
         } catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('reset ok', 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg =$e->getMessage();
             $transaction->rollBack();
+            $this->log('reset ok', 'error');
             return false;
         }
     }
     public function showCaliNames()
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $calinamearr = Calibrator::find()
             ->select([
                 'calibrator.name',
@@ -1165,6 +1250,7 @@ class Routine
         if (empty($calinamearr)) {
             $this->errCode = ErrCode::INNER_ERR;
             $this->errMsg = 'empty cali';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         return $calinamearr;
@@ -1172,6 +1258,7 @@ class Routine
     }
     public function showTargets()
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $targetitemarr = [];
         foreach (Item::find()->with('itemcalis')->all() as $item) {
             $targetitemarr[$item->id]['name'] = $item->name;
@@ -1183,10 +1270,12 @@ class Routine
     }
     public function changeTarget($changetargetarr = [])
     {
+        $this->log('function '.__FUNCTION__.' start', 'trace');
         $connection=Yii::$app->db;
         if (empty($changetargetarr)) {
             $this->errCode = ErrCode::PARAM_ERR;
             $this->errMsg = 'empty targetarr';
+            $this->log($this->errMsg, 'error');
             return false;
         }
         $transaction = $connection->beginTransaction();
@@ -1208,16 +1297,19 @@ class Routine
                 }
             }
             $transaction->commit();
+            $this->log('change target ok');
             return $changecnt;
         } catch (\Exception $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg = $e->getMessage();
             $transaction->rollBack();
+            $this->log('change target error', 'error');
             return false;
         } catch (\Throwable $e) {
             $this->errCode = ErrCode::DATABASE_ERR;
             $this->errMsg =$e->getMessage();
             $transaction->rollBack();
+            $this->log('change target error', 'error');
             return false;
         }
     }
