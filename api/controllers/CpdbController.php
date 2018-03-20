@@ -13,7 +13,7 @@ class CpdbController extends \yii\web\Controller
     {
         $routineObj = new Routine;
         // $routineObj->readResults(1);
-        var_dump($routineObj->updateGroupstat(1));
+        var_dump($routineObj->updateGroupstat(2));
         var_dump($routineObj->getErrMsg());
 
         // return $routineObj->updateGroupstat(37);

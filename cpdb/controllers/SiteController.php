@@ -136,8 +136,8 @@ class SiteController extends \yii\web\Controller
             httppost($url, $post_data, 1),
             [ 'reportarr']
         );
-        var_dump($ret);
-        exit;
+/*        var_dump($ret);
+        exit;*/
         $reportObj = new Report;
         if ($reportObj->Inidata($ret)) {
             $this->layout = false;
@@ -165,15 +165,15 @@ class SiteController extends \yii\web\Controller
         }
         if($request->isPost){
             //group & kick
-            $grouparr=$request->post('group');
-            $abandonarr=$request->post('abandon');
-            $caliid=$request->post('caliid');
-            $calilot=$request->post('calilot');
-            $cpdbkb=$request->post('cpdbkb');
+            $grouparr = $request->post('group');
+            $abandonarr = $request->post('abandon');
+            $caliid = $request->post('caliid');
+            $calilot = $request->post('calilot');
+            $cpdbkb = $request->post('cpdbkb');
 
-            if ($orderid!=$request->post('orderid')) {
+            if ($orderid != $request->post('orderid')) {
                 $msg='bad orderid';
-            } elseif(!empty($calilot)) {
+            } elseif (!empty($calilot)) {
                 $url = $urlpara['newgroup'];
                 $post_data = compact('caliid', 'calilot', 'orderid');
                 $ret = getServerError(
@@ -181,10 +181,9 @@ class SiteController extends \yii\web\Controller
                     [ 'ok', 'msg' ]
                 );
                 $msg = (is_array($ret)) ? $ret['msg'] : $msg;
-            } elseif(!empty($cpdbkb)) {
-                // var_dump($cpdbkb);
+            } elseif (!empty($cpdbkb)) {
                 foreach ($cpdbkb as $key => $value) {
-                    if(empty($value['lot'])||empty($value['k'])){
+                    if (empty($value['lot']) || empty($value['k'])) {
                         unset($cpdbkb[$key]);
                     }
                 }
@@ -198,22 +197,20 @@ class SiteController extends \yii\web\Controller
                     [ 'updatekb', 'msg' ]
                 );
                 $msg = (is_array($ret)) ? $ret['msg'] : $msg;
-            } elseif(!empty($grouparr)||!empty($abandonarr)) {
-                // echo "addgroup";
-                if(count($grouparr)) {
+            // } elseif(!empty($grouparr)||!empty($abandonarr)) {
+            } else {
+                if (count($grouparr)) {
                     foreach ($grouparr as $key => $value) {
-                        if(empty($value)){
+                        if (empty($value)) {
                             unset($grouparr[$key]);
                         }
                     }
                 }
-/*                var_dump($abandonarr);
-                exit;*/
-                $url=$urlpara['addgroup'];
+                $url = $urlpara['addgroup'];
                 $post_data = [
-                    'group'=>$grouparr,
-                    'abandon'=>$abandonarr,
-                    'orderid'=>$orderid,
+                    'group' => $grouparr,
+                    'abandon' => $abandonarr,
+                    'orderid' => $orderid,
                 ];
                 $curlret = httppost($url, $post_data, 1);
                 $msg = is_array($ret = getServerError($curlret, [ 'finishorder', 'msg' ]))
@@ -268,6 +265,7 @@ class SiteController extends \yii\web\Controller
         $urlpara = Yii::$app->params['apiurl'];
         $request = Yii::$app->request;
         $orderid = $request->get('orderid');
+        $msg = '';
         $url = $urlpara['resetresult'];
         $post_data = compact('orderid');
         $ret = getServerError(

@@ -138,8 +138,6 @@ class Routine
                 $testcntarr2[$groupid] = $testcnt;
             }
         }
-        // exit;
-        // return true;
         return [
             'ordername' => $order->ordername,
             'panellot' => $order->panellot,
@@ -565,14 +563,12 @@ class Routine
         foreach ($activegroups as $activegroup) {
             $this->finishgroup($activegroup->id);
         }
-        if ($this->cpdbcalckb($orderid)) {
-            return true;
-        } else {
+        $this->updateGroupstat($orderid);
+        if (!$this->cpdbcalckb($orderid)) {
             $this->errCode = ErrCode::FUNC_RET_FALSE;
             $this->errMsg = 'calc kb false';
             return false;
         }
-        $this->updateGroupstat($orderid);
   /*      $this->errCode = ErrCode::FUNC_RET_FALSE;
         $this->errMsg = 'order not finish';
         return false;*/
@@ -708,7 +704,7 @@ class Routine
             $this->errMsg = 'empty tests';
             return false;
         }
-        if(empty($grouprecord['cpdborder_id'])){
+        if(empty($grouprecord['calibrator_id'])){
             //cal2
             $cal2order = Cpdbgroup::find()
                 ->where([
@@ -813,8 +809,6 @@ class Routine
             // ->indexBy('item_id')
             ->asArray()
             ->all();
-        // var_dump($cpdbcalcarr);
-        // exit;
         $avercal2arr = [];
         $calckbarr = [];
         foreach ($cpdbcalcarr as $key => $value) {
@@ -828,8 +822,6 @@ class Routine
                 $avercal2arr[$itemid] = $tmpaver;
             }
         }
-/*        var_dump($calckbarr);
-        exit;*/
         foreach ($calckbarr as $key => $value) {
             if ($value['calicount'] != count($value['x'])) {
                 $this->errCode = ErrCode::INNER_ERR;
@@ -1021,7 +1013,7 @@ class Routine
         //////////////////////////////////
         $islocal = Yii::$app->params['islocal'];
         if ($islocal) {
-            $path = '/home/shan/';
+            $path = Yii::$app->params['localpath'];
         }
         if (!file_exists($path)) {
             $this->errCode = ErrCode::INNER_ERR;
@@ -1029,9 +1021,6 @@ class Routine
             return false;
         }
         $readarr = readresultfile($path, $order->panel->name ,$date ,$panelitemarr);
-                ////////////////////////////
-        // var_dump($readarr);
-        // exit;
         if (!$readarr['ok']) {
             $this->errCode = ErrCode::FUNC_RET_FALSE;
             $this->errMsg = $readarr['msg'];
@@ -1052,8 +1041,6 @@ class Routine
                 }
             }
         }
-/*        var_dump($readarr['ret']);
-        exit;*/
         $lastdatetime = Paneltest::find()
             ->select('MAX(UNIX_TIMESTAMP(chkdatetime))')
             ->where([ 'machine_id' => $order->machine_id ])
@@ -1113,8 +1100,6 @@ class Routine
         foreach (Itemcali::find()->all() as $itemcali) {
             $targetarr[$itemcali->calibrator_id][$itemcali->item_id] = $itemcali->target;
         }
-        // var_dump($targetarr);
-        // exit;
         $connection=Yii::$app->db;
         $transaction = $connection->beginTransaction();
         try {
@@ -1359,7 +1344,8 @@ function chksubval($array = [], $target = '', $point = 2)
                 break;
             case 3:
                 // var_dump(3);
-                return false;
+                // return false;
+                return 0;
                 break;
             default:
                 // var_dump('default');
