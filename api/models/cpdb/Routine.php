@@ -674,7 +674,7 @@ class Routine
                     }
                     $group3->stat = 'ON';
                     if ($group3->save()) {
-                        $this->log('group3 status on' . $group3->id);
+                        $this->log('group3 status on ' . $group3->id . ', itemid:' . $itemid . ', threshoud: ' . $threshold[$itemid]);
                         return true;
                     } else {
                         $this->log('group3 no save', 'error');
